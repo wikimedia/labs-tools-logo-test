@@ -1,0 +1,34 @@
+{% extends "base" %}
+{% block title %}logo-test{% endblock %}
+{% block content %}
+    <h1 class="text-center">logo-test</h1>
+    <p class="text-center">
+        The logo-test tool allows you to test proposed logos on Wikimedia wikis in various
+        configurations in a straightforward way.
+    </p>
+
+    <div class="container">
+        <form method="get">
+          <div class="form-group">
+            <label for="wiki">Wiki</label>
+            <input name="wiki" type="text" class="form-control" id="wiki" aria-describedby="wikiHelp" placeholder="xx.wikipedia.org" value="{{wiki}}">
+            <small id="wikiHelp" class="form-text text-muted">Domain for the wiki to test against</small>
+          </div>
+          <div class="form-group">
+            <label for="logo">Logo</label>
+            <input name="logo" type="text" class="form-control" id="logo" aria-describedby="logoHelp" placeholder="File:Mycoollogo.svg", value="{{logo}}">
+            <small id="logoHelp" class="form-text text-muted">Commons logo to test with</small>
+          </div>
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+
+        {% if wiki and logo %}
+        <h2>Test your logo</h2>
+        <ul>
+            {% for skin in ["vector", "timeless", "monobook"] %}
+            <li><a href="/test?wiki={{wiki}}&logo={{logo}}&useskin={{skin}}">Using the {{skin}} skin</a></li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+{% endblock %}

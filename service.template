@@ -1,0 +1,5 @@
+backend: kubernetes
+canonical: True
+type: golang111
+extra_args:
+  - www/rust/run-webserver.sh
