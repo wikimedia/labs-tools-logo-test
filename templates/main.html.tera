@@ -17,7 +17,7 @@
           <div class="form-group">
             <label for="logo">Logo</label>
             <input name="logo" type="text" class="form-control" id="logo" aria-describedby="logoHelp" placeholder="File:Mycoollogo.svg", value="{{logo}}">
-            <small id="logoHelp" class="form-text text-muted">Commons logo to test with</small>
+            <small id="logoHelp" class="form-text text-muted">Commons logo to test with (must be a SVG)</small>
           </div>
           <button type="submit" class="btn btn-primary">Submit</button>
         </form>

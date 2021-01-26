@@ -90,6 +90,9 @@ fn build_index(wiki: Option<String>, logo: Option<String>) -> Result<IndexTempla
     if let Some(wiki) = &wiki {
         validate_wiki(wiki)?;
     }
+    if let Some(logo) = &logo {
+        validate_logo(logo)?;
+    }
     Ok(IndexTemplate { wiki, logo })
 }
 
@@ -153,6 +156,16 @@ fn validate_wiki(wiki: &str) -> Result<()> {
     }
 }
 
+fn validate_logo(logo: &str) -> Result<()> {
+    if !logo.ends_with(".svg") {
+        Err(anyhow!("Logo must be a SVG"))
+    } else if !logo.starts_with("File:") {
+        Err(anyhow!("Logo must begin with File:"))
+    } else {
+        Ok(())
+    }
+}
+
 /// Fetch thumbs from Commons and turn it into CSS
 async fn commons_thumbs(logo: &str) -> Result<String> {
     let resp = client()?.get(
@@ -175,6 +188,7 @@ async fn commons_thumbs(logo: &str) -> Result<String> {
 async fn build_test(wiki: &str, logo: &str, useskin: &str) -> Result<String> {
     validate_skin(useskin)?;
     validate_wiki(wiki)?;
+    validate_logo(logo)?;
     let resp = client()?
         .get(&format!("https://{}/?useskin={}", wiki, useskin))
         .send()
@@ -244,5 +258,23 @@ mod tests {
     #[should_panic]
     fn test_validate_skin_bad() {
         validate_skin("whatever").unwrap();
+    }
+
+    #[test]
+    fn test_validate_logo() {
+        // No panic
+        validate_logo("File:Wiki.svg").unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_validate_logo_no_file() {
+        validate_logo("Wiki.svg").unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_validate_logo_not_svg() {
+        validate_logo("File:Wiki.png").unwrap();
     }
 }
