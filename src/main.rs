@@ -306,6 +306,13 @@ mod tests {
             .into_string()
             .unwrap()
             .contains("Using the vector skin"));
+
+        // Error handling
+        let response = client
+            .get("/?wiki=en.wikipedia.org&logo=Bad_logo")
+            .dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        assert!(response.into_string().unwrap().contains("logo-test: error"))
     }
 
     #[test]
@@ -324,5 +331,12 @@ mod tests {
             .unwrap()
             // the 2x variant, good enough for an integration test
             .contains("270px-Uncyclomedia_blue_logo_notext.svg.png"));
+
+        // Error handling
+        let response = client
+            .get("/test?wiki=en.wikipedia.org&logo=Bad_logo&useskin=timeless")
+            .dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        assert!(response.into_string().unwrap().contains("logo-test: error"))
     }
 }
