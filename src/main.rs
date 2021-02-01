@@ -179,7 +179,10 @@ async fn commons_thumbs(logo: &str) -> Result<String> {
     // Replace the URLs in:
     let css = CSS
         .to_string()
-        .replace("$logo_1_5x", &info.responsive_urls.one_half)
+        .replace(
+            "$logo_1_5x",
+            &info.responsive_urls.one_half.replace("203", "202"),
+        )
         .replace("$logo_2x", &info.responsive_urls.two)
         .replace("$logo", &info.thumburl);
     Ok(css)
@@ -232,7 +235,7 @@ mod tests {
 
 @media (-webkit-min-device-pixel-ratio:1.5),(min--moz-device-pixel-ratio:1.5),(min-resolution:1.5dppx),(min-resolution:144dpi) {
  .mw-wiki-logo {
-  background-image:url(https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Wikipedia-logo-v2-wordmark.svg/203px-Wikipedia-logo-v2-wordmark.svg.png);
+  background-image:url(https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Wikipedia-logo-v2-wordmark.svg/202px-Wikipedia-logo-v2-wordmark.svg.png);
   background-size:135px auto
  }
 }
