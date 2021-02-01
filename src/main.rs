@@ -142,8 +142,13 @@ fn validate_skin(skin: &str) -> Result<()> {
 fn validate_wiki(wiki: &str) -> Result<()> {
     use mysql::prelude::*;
     use mysql::*;
-    let db_url = toolforge::connection_info!("enwiki", WEB)?;
-    let pool = Pool::new(db_url.to_string())?;
+    let db_url = match toolforge::connection_info!("enwiki", WEB) {
+        Ok(info) => info.to_string(),
+        // If we're not on Toolforge, don't bother validating
+        Err(toolforge::Error::NotToolforge(_)) => return Ok(()),
+        Err(e) => return Err(e.into()),
+    };
+    let pool = Pool::new(db_url)?;
     let mut conn = pool.get_conn()?;
     let full_wiki = format!("https://{}", wiki);
     let resp: Option<u32> =
