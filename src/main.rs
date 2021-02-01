@@ -51,7 +51,7 @@ const CSS: &str = r#"
 </head>
 "#;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 struct ErrorTemplate {
     error: String,
 }
