@@ -224,6 +224,8 @@ fn rocket() -> rocket::Rocket {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rocket::http::Status;
+    use rocket::local::blocking::Client;
 
     #[tokio::test]
     async fn test_commons_thumbs() {
@@ -284,5 +286,43 @@ mod tests {
     #[should_panic]
     fn test_validate_logo_not_svg() {
         validate_logo("File:Wiki.png").unwrap();
+    }
+
+    #[test]
+    fn test_index() {
+        let client = Client::tracked(rocket()).unwrap();
+        let response = client.get("/").dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        assert!(response
+            .into_string()
+            .unwrap()
+            .contains("The logo-test tool allows you"));
+
+        let response = client
+            .get("/?wiki=en.wikipedia.org&logo=File%3AUncyclomedia+blue+logo+notext.svg")
+            .dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        assert!(response
+            .into_string()
+            .unwrap()
+            .contains("Using the vector skin"));
+    }
+
+    #[test]
+    fn test_test() {
+        // the /test endpoint
+        let client = Client::tracked(rocket()).unwrap();
+        let response = client.get("/test").dispatch();
+        assert_eq!(response.status(), Status::NotFound);
+
+        let response = client
+            .get("/test?wiki=en.wikipedia.org&logo=File%3AUncyclomedia+blue+logo+notext.svg&useskin=timeless")
+            .dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        assert!(response
+            .into_string()
+            .unwrap()
+            // the 2x variant, good enough for an integration test
+            .contains("270px-Uncyclomedia_blue_logo_notext.svg.png"));
     }
 }
