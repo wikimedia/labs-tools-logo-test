@@ -1,7 +1,7 @@
 {% extends "base" %}
-{% block title %}error{% endblock %}
+{% block title %}logo-test: error{% endblock %}
 {% block content %}
-    <h1 class="text-center">error</h1>
+    <h1 class="text-center">logo-test: error</h1>
     <p class="text-center">
         {{error}}
     </p>
