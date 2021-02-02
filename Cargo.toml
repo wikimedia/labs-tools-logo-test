@@ -14,7 +14,7 @@ url = "2"
 regex = "1"
 anyhow = "1.0.31"
 reqwest = {version = "0.11", features = ["gzip", "json"]}
-toolforge = {version = "0.3.0-alpha.1", features = ["mysql"]}
+toolforge = {version = "0.3.0-beta.1", features = ["mysql"]}
 mysql = "20"
 #rocket_healthz = "0.1.0"
 
