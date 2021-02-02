@@ -142,7 +142,7 @@ fn validate_skin(skin: &str) -> Result<()> {
 fn validate_wiki(wiki: &str) -> Result<()> {
     use mysql::prelude::*;
     use mysql::*;
-    let db_url = match toolforge::connection_info!("enwiki", WEB) {
+    let db_url = match toolforge::connection_info!("meta_p", WEB) {
         Ok(info) => info.to_string(),
         // If we're not on Toolforge, don't bother validating
         Err(toolforge::Error::NotToolforge(_)) => return Ok(()),
@@ -151,8 +151,7 @@ fn validate_wiki(wiki: &str) -> Result<()> {
     let pool = Pool::new(db_url)?;
     let mut conn = pool.get_conn()?;
     let full_wiki = format!("https://{}", wiki);
-    let resp: Option<u32> =
-        conn.exec_first("SELECT 1 FROM meta_p.wiki WHERE url = ?", (full_wiki,))?;
+    let resp: Option<u32> = conn.exec_first("SELECT 1 FROM wiki WHERE url = ?", (full_wiki,))?;
     // TODO: do we need to explicitly close the connection?
     if resp.is_some() {
         Ok(())
