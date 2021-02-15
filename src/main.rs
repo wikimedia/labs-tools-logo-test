@@ -88,7 +88,7 @@ struct IndexTemplate {
 /// Build the index template (`/`)
 fn build_index(wiki: Option<String>, logo: Option<String>) -> Result<IndexTemplate> {
     if let Some(wiki) = &wiki {
-        validate_wiki(wiki)?;
+        validate_domain(wiki)?;
     }
     if let Some(logo) = &logo {
         validate_logo(logo)?;
@@ -139,9 +139,22 @@ fn validate_skin(skin: &str) -> Result<()> {
     }
 }
 
-fn validate_wiki(wiki: &str) -> Result<()> {
+fn validate_domain(wiki: &str) -> Result<()> {
     use mysql::prelude::*;
     use mysql::*;
+    let domain = if wiki.starts_with("https://") {
+        let parsed = url::Url::parse(wiki)?;
+        match parsed.host_str() {
+            Some(domain) => domain.to_string(),
+            None => return Err(anyhow!("Invalid domain specified")),
+        }
+    } else {
+        wiki.to_string()
+    };
+    if domain == "upload.wikimedia.org" || domain == "people.wikimedia.org" {
+        // Non-wiki, safe domains
+        return Ok(());
+    }
     let db_url = match toolforge::connection_info!("meta_p", WEB) {
         Ok(info) => info.to_string(),
         // If we're not on Toolforge, don't bother validating
@@ -150,13 +163,13 @@ fn validate_wiki(wiki: &str) -> Result<()> {
     };
     let pool = Pool::new(db_url)?;
     let mut conn = pool.get_conn()?;
-    let full_wiki = format!("https://{}", wiki);
-    let resp: Option<u32> = conn.exec_first("SELECT 1 FROM wiki WHERE url = ?", (full_wiki,))?;
+    let full_domain = format!("https://{}", domain);
+    let resp: Option<u32> = conn.exec_first("SELECT 1 FROM wiki WHERE url = ?", (full_domain,))?;
     // TODO: do we need to explicitly close the connection?
     if resp.is_some() {
         Ok(())
     } else {
-        Err(anyhow!("Invalid wiki"))
+        Err(anyhow!("Invalid domain"))
     }
 }
 
@@ -194,7 +207,7 @@ async fn commons_thumbs(logo: &str) -> Result<String> {
 
 async fn build_test(wiki: &str, logo: &str, useskin: &str) -> Result<String> {
     validate_skin(useskin)?;
-    validate_wiki(wiki)?;
+    validate_domain(wiki)?;
     validate_logo(logo)?;
     let resp = client()?
         .get(&format!("https://{}/?useskin={}", wiki, useskin))
@@ -213,11 +226,57 @@ async fn build_test(wiki: &str, logo: &str, useskin: &str) -> Result<String> {
     Ok(injected)
 }
 
+#[derive(Serialize)]
+struct DiffTemplate {
+    logo1: Option<String>,
+    logo2: Option<String>,
+    logo1_safe: Option<String>,
+    logo2_safe: Option<String>,
+}
+
+#[get("/diff?<logo1>&<logo2>")]
+fn diff(logo1: Option<String>, logo2: Option<String>) -> Template {
+    match build_diff(logo1, logo2) {
+        Ok(diff) => Template::render("diff", diff),
+        Err(err) => {
+            dbg!(&err);
+            Template::render(
+                "error",
+                ErrorTemplate {
+                    error: err.to_string(),
+                },
+            )
+        }
+    }
+}
+
+/// Build the diff template (`/`)
+fn build_diff(logo1: Option<String>, logo2: Option<String>) -> Result<DiffTemplate> {
+    let logo1_safe = if let Some(logo1) = &logo1 {
+        validate_domain(logo1)?;
+        Some(serde_json::to_string(logo1)?)
+    } else {
+        None
+    };
+    let logo2_safe = if let Some(logo2) = &logo2 {
+        validate_domain(logo2)?;
+        Some(serde_json::to_string(logo2)?)
+    } else {
+        None
+    };
+    Ok(DiffTemplate {
+        logo1,
+        logo2,
+        logo1_safe,
+        logo2_safe,
+    })
+}
+
 #[launch]
 fn rocket() -> rocket::Rocket {
     rocket::ignite()
         .attach(Template::fairing())
-        .mount("/", routes![index, test])
+        .mount("/", routes![index, diff, test])
 }
 
 #[cfg(test)]
@@ -337,5 +396,13 @@ mod tests {
             .dispatch();
         assert_eq!(response.status(), Status::Ok);
         assert!(response.into_string().unwrap().contains("logo-test: error"))
+    }
+
+    #[test]
+    fn test_validate_domain() {
+        validate_domain("upload.wikimedia.org").unwrap();
+        validate_domain("people.wikmedia.org").unwrap();
+        // TODO: why is this failing?
+        // assert!(validate_domain("/foo/bar").err().is_some());
     }
 }

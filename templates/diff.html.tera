@@ -1,0 +1,49 @@
+{% extends "base" %}
+{% block title %}logo-test: diff{% endblock %}
+{% block content %}
+    <h1 class="text-center">logo-test: diff</h1>
+    <p class="text-center">
+        The logo-test diff interface allows you to view easily identify visual changes in two images files.
+        <noscript>This page requires JavaScript to function.</noscript>
+    </p>
+
+    <div class="container">
+        <form method="get">
+          <div class="form-group">
+            <label for="logo1">Logo #1</label>
+            <input name="logo1" type="text" class="form-control" id="logo1" aria-describedby="logo1Help" placeholder="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Wikipedia-logo-v2-en.svg/135px-Wikipedia-logo-v2-en.svg.png" value="{{logo1}}">
+            <small id="logo1Help" class="form-text text-muted">First logo</small>
+          </div>
+          <div class="form-group">
+            <label for="logo2">Logo #2</label>
+            <input name="logo2" type="text" class="form-control" id="logo2" aria-describedby="logo2Help" placeholder="https://en.wikipedia.org/static/images/project-logos/enwiki.png", value="{{logo2}}">
+            <small id="logo2Help" class="form-text text-muted">Second logo</small>
+          </div>
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+
+        {% if logo1 and logo2 %}
+        <img id="the-logo" src="{{logo1}}" width="135px"/>
+
+        <script>
+        var urls = {
+            'first': {{logo1_safe|safe}},
+            'second': {{logo2_safe|safe}},
+        };
+        function flip() {
+            var elem = document.getElementById("the-logo");
+            var current = elem.getAttribute("data-s");
+            if (current=="first") {
+                elem.setAttribute("src", urls.second);
+                elem.setAttribute("data-s", "second");
+            } else {
+                elem.setAttribute("src", urls.first);
+                elem.setAttribute("data-s", "first");
+            }
+        }
+
+        setInterval(flip, 1000);
+        </script>
+        {% endif %}
+    </div>
+{% endblock %}
