@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 use anyhow::{anyhow, Result};
 use regex::Regex;
 use rocket::response::content;
-use rocket_contrib::templates::Template;
+use rocket_dyn_templates::Template;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -272,11 +272,16 @@ fn build_diff(logo1: Option<String>, logo2: Option<String>) -> Result<DiffTempla
     })
 }
 
+#[get("/healthz")]
+fn healthz() -> &'static str {
+    "OK"
+}
+
 #[launch]
-fn rocket() -> rocket::Rocket {
-    rocket::ignite()
+fn rocket() -> _ {
+    rocket::build()
         .attach(Template::fairing())
-        .mount("/", routes![index, diff, test])
+        .mount("/", routes![index, diff, healthz, test])
 }
 
 #[cfg(test)]
