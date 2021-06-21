@@ -65,8 +65,8 @@ fn client() -> Result<reqwest::Client> {
 }
 
 #[get("/?<wiki>&<logo>")]
-fn index(wiki: Option<String>, logo: Option<String>) -> Template {
-    match build_index(wiki, logo) {
+async fn index(wiki: Option<String>, logo: Option<String>) -> Template {
+    match build_index(wiki, logo).await {
         Ok(index) => Template::render("main", index),
         Err(err) => {
             dbg!(&err);
@@ -87,9 +87,9 @@ struct IndexTemplate {
 }
 
 /// Build the index template (`/`)
-fn build_index(wiki: Option<String>, logo: Option<String>) -> Result<IndexTemplate> {
+async fn build_index(wiki: Option<String>, logo: Option<String>) -> Result<IndexTemplate> {
     if let Some(wiki) = &wiki {
-        validate_domain(wiki)?;
+        validate_domain(wiki).await?;
     }
     if let Some(logo) = &logo {
         validate_logo(logo)?;
@@ -140,9 +140,9 @@ fn validate_skin(skin: &str) -> Result<()> {
     }
 }
 
-fn validate_domain(wiki: &str) -> Result<()> {
-    use mysql::prelude::*;
-    use mysql::*;
+async fn validate_domain(wiki: &str) -> Result<()> {
+    use mysql_async::prelude::*;
+    use mysql_async::Pool;
     let domain = if wiki.starts_with("https://") {
         let parsed = url::Url::parse(wiki)?;
         match parsed.host_str() {
@@ -162,11 +162,14 @@ fn validate_domain(wiki: &str) -> Result<()> {
         Err(toolforge::Error::NotToolforge(_)) => return Ok(()),
         Err(e) => return Err(e.into()),
     };
-    let pool = Pool::new(db_url)?;
-    let mut conn = pool.get_conn()?;
+    let pool = Pool::new(db_url);
+    let mut conn = pool.get_conn().await?;
     let full_domain = format!("https://{}", domain);
-    let resp: Option<u32> = conn.exec_first("SELECT 1 FROM wiki WHERE url = ?", (full_domain,))?;
-    // TODO: do we need to explicitly close the connection?
+    let resp: Option<u32> = conn
+        .exec_first("SELECT 1 FROM wiki WHERE url = ?", (full_domain,))
+        .await?;
+    drop(conn);
+    pool.disconnect().await?;
     if resp.is_some() {
         Ok(())
     } else {
@@ -208,7 +211,7 @@ async fn commons_thumbs(logo: &str) -> Result<String> {
 
 async fn build_test(wiki: &str, logo: &str, useskin: &str) -> Result<String> {
     validate_skin(useskin)?;
-    validate_domain(wiki)?;
+    validate_domain(wiki).await?;
     validate_logo(logo)?;
     let resp = client()?
         .get(&format!("https://{}/?useskin={}", wiki, useskin))
@@ -238,8 +241,8 @@ struct DiffTemplate {
 }
 
 #[get("/diff?<logo1>&<logo2>")]
-fn diff(logo1: Option<String>, logo2: Option<String>) -> Template {
-    match build_diff(logo1, logo2) {
+async fn diff(logo1: Option<String>, logo2: Option<String>) -> Template {
+    match build_diff(logo1, logo2).await {
         Ok(diff) => Template::render("diff", diff),
         Err(err) => {
             dbg!(&err);
@@ -254,15 +257,15 @@ fn diff(logo1: Option<String>, logo2: Option<String>) -> Template {
 }
 
 /// Build the diff template (`/`)
-fn build_diff(logo1: Option<String>, logo2: Option<String>) -> Result<DiffTemplate> {
+async fn build_diff(logo1: Option<String>, logo2: Option<String>) -> Result<DiffTemplate> {
     let logo1_safe = if let Some(logo1) = &logo1 {
-        validate_domain(logo1)?;
+        validate_domain(logo1).await?;
         Some(serde_json::to_string(logo1)?)
     } else {
         None
     };
     let logo2_safe = if let Some(logo2) = &logo2 {
-        validate_domain(logo2)?;
+        validate_domain(logo2).await?;
         Some(serde_json::to_string(logo2)?)
     } else {
         None
@@ -406,11 +409,11 @@ mod tests {
         assert!(response.into_string().unwrap().contains("logo-test: error"))
     }
 
-    #[test]
-    fn test_validate_domain() {
-        validate_domain("upload.wikimedia.org").unwrap();
-        validate_domain("people.wikmedia.org").unwrap();
+    #[tokio::test]
+    async fn test_validate_domain() {
+        validate_domain("upload.wikimedia.org").await.unwrap();
+        validate_domain("people.wikmedia.org").await.unwrap();
         // TODO: why is this failing?
-        // assert!(validate_domain("/foo/bar").err().is_some());
+        // assert!(validate_domain("/foo/bar").await.err().is_some());
     }
 }
