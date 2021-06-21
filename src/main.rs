@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 use anyhow::{anyhow, Result};
+use lazy_static::lazy_static;
 use regex::Regex;
 use rocket::response::content;
 use rocket_dyn_templates::Template;
@@ -216,9 +217,11 @@ async fn build_test(wiki: &str, logo: &str, useskin: &str) -> Result<String> {
     let text = resp.text().await?;
 
     // Make some URLs absolute
-    let re = Regex::new(r#"(?P<attr>(src|href))="/(?P<letter>[A-z])"#).unwrap();
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r#"(?P<attr>(src|href))="/(?P<letter>[A-z])"#).unwrap();
+    }
     let rep = format!(r#"$attr="//{}/$letter"#, wiki);
-    let fixed = re.replace_all(&text, rep.as_str());
+    let fixed = RE.replace_all(&text, rep.as_str());
 
     // Inject the Commmons logo CSS
     let css = commons_thumbs(logo).await?;
