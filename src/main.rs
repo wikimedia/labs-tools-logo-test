@@ -102,9 +102,9 @@ async fn test(
     wiki: String,
     logo: String,
     useskin: String,
-) -> Result<content::Html<String>, Template> {
+) -> Result<content::RawHtml<String>, Template> {
     match build_test(&wiki, &logo, &useskin).await {
-        Ok(text) => Ok(content::Html(text)),
+        Ok(text) => Ok(content::RawHtml(text)),
         Err(err) => {
             dbg!(&err);
             Err(Template::render(
@@ -162,7 +162,7 @@ async fn validate_domain(wiki: &str) -> Result<()> {
         Err(toolforge::Error::NotToolforge(_)) => return Ok(()),
         Err(e) => return Err(e.into()),
     };
-    let pool = Pool::new(db_url);
+    let pool = Pool::new(db_url.as_str());
     let mut conn = pool.get_conn().await?;
     let full_domain = format!("https://{}", domain);
     let resp: Option<u32> = conn
